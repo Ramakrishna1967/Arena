@@ -55,7 +55,7 @@ export class ArenaApp {
   readonly arenaRoot: string;
   readonly engine: LevelingEngine;
   readonly arbiter: Arbiter;
-  private readonly orchestrator: ArenaOrchestrator;
+  private orchestratorInstance?: ArenaOrchestrator;
   private readonly cfg: ArenaAppConfig;
 
   constructor(cfg: ArenaAppConfig) {
@@ -72,14 +72,27 @@ export class ArenaApp {
       ...(cfg.minerLane !== undefined ? { miner } : {}),
     });
     this.arbiter = new Arbiter({ arenaRoot: this.arenaRoot, ...(cfg.judgeLane !== undefined ? { judge: cfg.judgeLane } : {}) });
+  }
 
-    const adapter = cfg.adapterFactory !== undefined ? cfg.adapterFactory() : createProvider(cfg.worker.provider, { apiKey: cfg.worker.apiKey, baseUrl: cfg.worker.baseUrl });
-    this.orchestrator = new ArenaOrchestrator(
-      adapter,
-      defaultRegistry(),
-      new PermissionManager({ default: 'allow', rules: [{ tool: 'web_fetch', mode: 'allow' }, { tool: 'code_eval', mode: 'allow' }] }),
-      { ...(cfg.maxDepth !== undefined ? { maxDepth: cfg.maxDepth } : {}) },
-    );
+  /**
+   * Lazy worker construction: inspection commands (status/skills/runs/why)
+   * must work WITHOUT any API key - credentials are only demanded when a
+   * task will actually hit a provider.
+   */
+  private ensureOrchestrator(): ArenaOrchestrator {
+    if (this.orchestratorInstance === undefined) {
+      const adapter =
+        this.cfg.adapterFactory !== undefined
+          ? this.cfg.adapterFactory()
+          : createProvider(this.cfg.worker.provider, { apiKey: this.cfg.worker.apiKey, baseUrl: this.cfg.worker.baseUrl });
+      this.orchestratorInstance = new ArenaOrchestrator(
+        adapter,
+        defaultRegistry(),
+        new PermissionManager({ default: 'allow', rules: [{ tool: 'web_fetch', mode: 'allow' }, { tool: 'code_eval', mode: 'allow' }] }),
+        { ...(this.cfg.maxDepth !== undefined ? { maxDepth: this.cfg.maxDepth } : {}) },
+      );
+    }
+    return this.orchestratorInstance;
   }
 
   /** Full loop: select skills -> run (recorded) -> score -> level ingest. */
@@ -108,7 +121,7 @@ export class ArenaApp {
       opts.onEvent?.(e);
     };
 
-    const result = await this.orchestrator.run(task, bundle, {
+    const result = await this.ensureOrchestrator().run(task, bundle, {
       cwd: opts.cwd,
       signal: opts.signal,
       onEvent: chained,
@@ -153,7 +166,7 @@ export class ArenaApp {
       recorder.write(e);
       opts.onEvent?.(e);
     };
-    const result = await this.orchestrator.run(followUp, bundle, { signal: opts.signal, onEvent: chained, runId, seedMessages: seeded });
+    const result = await this.ensureOrchestrator().run(followUp, bundle, { signal: opts.signal, onEvent: chained, runId, seedMessages: seeded });
     recorder.finalize();
 
     const record = await this.arbiter.scoreRun(runDir, { targetRunId: runId });
