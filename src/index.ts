@@ -63,3 +63,36 @@ export { llmJudge } from './arbiter/llm-judge.js';
 export type { JudgeLaneConfig } from './arbiter/llm-judge.js';
 export type { Rubric, RubricDimension, CheckResult, ScoreRecord, Verdict } from './arbiter/types.js';
 export type { JudgeFn, JudgeRequest, JudgeResult, DimensionScore } from './arbiter/judge-types.js';
+
+// Layer 4: Leveling + Skill Evolution.
+export { LevelingEngine, type LevelingOptions, type SkillInjection } from './leveling/engine.js';
+export { StatsEngine } from './leveling/stats.js';
+export { evaluateLevelUp } from './leveling/gates.js';
+export { SkillStore, estimateTokens, slugify, renderSkillMd } from './leveling/skill-store.js';
+export { PolicyStore, SkillLedger } from './leveling/policy.js';
+export { selectSkills, matchesGlob } from './leveling/selector.js';
+export type { SelectionInput, SelectedSkill } from './leveling/selector.js';
+export { llmSkillMiner, renderMinerPrompt } from './leveling/miner.js';
+export type { MinerFn, MinerRequest, MinedDraft } from './leveling/miner.js';
+export { findContradiction, regressionSweep, DEFAULT_REGRESSION } from './leveling/promotion.js';
+export type { RollbackEvent, RegressionOptions } from './leveling/promotion.js';
+export {
+  DEFAULT_LEVEL_CONFIG,
+} from './leveling/types.js';
+export {
+  weightForDepth,
+  fingerprintTask,
+  ensureArenaRoot,
+} from './leveling/paths.js';
+export type {
+  AgentStats,
+  LevelConfig,
+  WindowEntry,
+  SkillData,
+  SkillStatus,
+  SkillTriggers,
+  SkillLineage,
+  LineageNode,
+  LedgerEntry,
+  PolicyPointer,
+} from './leveling/types.js';

@@ -79,7 +79,7 @@ Order follows data flow: nothing scores what doesn't run; nothing levels up with
 - `tests/arbiter/` — exit criteria proven: JSONL roundtrip replay; byte-identical re-score with fixed clock; rubric version pinned verbatim; hard-fail decisive with judge never called; provider fault → inconclusive; judge-lane outage degrades gracefully
 - **91/91 tests passing, tsc strict clean.** Contract docs: `src/arbiter/README.md`
 
-## Phase 5: Leveling + Skill Evolution Engine (L4)
+## Phase 5: Leveling + Skill Evolution Engine (L4) — ✅ COMPLETE
 **Goal:** Improvement that cannot be faked by a lucky run.
 
 - Stats rollup (root 1.0 / sub-agent 0.5 weighting), rolling success rates
@@ -90,6 +90,13 @@ Order follows data flow: nothing scores what doesn't run; nothing levels up with
 - Token-budgeted deterministic skill trigger matching
 
 **Exit criteria:** Single success never promotes (forced test); forced regression triggers auto-rollback; lineage DAG reconstructs full history of any skill/policy.
+
+**Delivered (2026-08-25):**
+- `src/leveling/` — `StatsEngine` (root 1.0 / child 0.5 weights, inconclusive excluded, rolling window, task fingerprints), `gates.ts` (K×M×rate — single success structurally cannot promote), `skill-store.ts` (SKILL.md + canonical skill.json, version DAG with parent edges + per-version outcome windows), `selector.ts` (deterministic trigger matching, token-budget packing, canary rolls), `policy.ts` (pointer-flip generations + injection ledger), `miner.ts` (injectable MinerFn + LLM impl), `promotion.ts` (contradiction gate Jaccard>0.6; regression sweep auto-rollback δ=0.2 under baseline, floor 0.3, ≥5 uses)
+- `engine.ts` facade: ingest → credit → gate → promote-with-history; selectForRun → ledger; mineFromRun → draft; sweep → rollback events
+- `tests/leveling/` — exit criteria proven end-to-end: 1 success blocked / grinding blocked by variety gate / rate collapse blocked; promotion fires at real evidence with history line; mined skill → candidate contradiction-blocked duplicate; forced failure window triggers pointer-flip rollback with lineage preserving every status
+- **100/100 tests passing, tsc strict clean.** Contract docs: `src/leveling/README.md`
+- Debt logged: parallel skill attribution when multiple skills injected per run (v1 credits all); YAML frontmatter is generated-only (canonical data in skill.json)
 
 ## Phase 6: CLI Surface, Persistence Hardening, Distribution (L5)
 **Goal:** Ship it as a tool people install.
