@@ -1,4 +1,4 @@
-import type { AgentEvent, RunStatus } from '../agent/types.js';
+import type { AgentEvent, ChatMessage, RunStatus } from '../agent/types.js';
 
 export interface TrajectoryStep {
   step: number;
@@ -88,4 +88,59 @@ export function buildTrajectoryView(events: AgentEvent[], runId: string): Trajec
     }
   }
   return view;
+}
+
+/**
+ * Rebuilds a provider-shaped ChatMessage[] for one run from its events -
+ * the cold-start resume path: a brand-new process can continue a session
+ * with nothing but the JSONL on disk.
+ */
+export function rebuildMessages(events: AgentEvent[], runId: string): ChatMessage[] {
+  const own = events.filter((e) => e.runId === runId);
+  const start = own.find((e): e is Extract<AgentEvent, { type: 'run_start' }> => e.type === 'run_start');
+  if (!start) throw new Error(`no run_start for runId '${runId}'`);
+
+  const messages: ChatMessage[] = [{ role: 'user', text: start.task }];
+  const pendingResults = new Map<string, { name: string; output: string; ok: boolean }>();
+  let curText = '';
+  let curCalls: Array<{ id: string; name: string; arguments: Record<string, unknown> }> = [];
+
+  const flushAssistant = (): void => {
+    if (curText.length > 0 || curCalls.length > 0) {
+      messages.push({
+        role: 'assistant',
+        ...(curText.length > 0 ? { text: curText } : {}),
+        ...(curCalls.length > 0 ? { toolCalls: [...curCalls] } : {}),
+      });
+      curText = '';
+      curCalls = [];
+    }
+  };
+
+  for (const e of own) {
+    switch (e.type) {
+      case 'text':
+        curText += e.delta;
+        break;
+      case 'tool_call':
+        flushAssistant();
+        curCalls.push({ id: e.call.id, name: e.call.name, arguments: e.call.arguments });
+        break;
+      case 'tool_result':
+        pendingResults.set(e.callId, { name: e.tool, output: e.output, ok: e.ok });
+        break;
+      case 'step_end': {
+        flushAssistant();
+        for (const [callId, r] of pendingResults) {
+          messages.push({ role: 'tool', toolCallId: callId, name: r.name, text: r.output, isError: !r.ok });
+        }
+        pendingResults.clear();
+        break;
+      }
+      default:
+        break;
+    }
+  }
+  flushAssistant();
+  return messages;
 }

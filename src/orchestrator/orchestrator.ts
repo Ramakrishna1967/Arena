@@ -20,6 +20,12 @@ export interface OrchestratorOptions {
   budgetShrink?: number;
 }
 
+/** Root-level run id supplied by the caller (ArenaApp) for ledger linkage. */
+export interface RunEnv extends SpawnEnv {
+  runId?: string;
+  seedMessages?: import('../agent/types.js').ChatMessage[];
+}
+
 /**
  * Owns the spawn tree. Every run gets its OWN registry clone containing a
  * depth-scoped spawn_agent tool, so a grandchild spawned by a child is
@@ -39,13 +45,15 @@ export class ArenaOrchestrator {
     this.shrink = opts.budgetShrink ?? DEFAULT_BUDGET_SHRINK;
   }
 
-  async run(task: string, bundle: PolicyBundle, env: SpawnEnv = {}): Promise<RunResult> {
+  async run(task: string, bundle: PolicyBundle, env: RunEnv = {}): Promise<RunResult> {
     return this.runScoped({
       task,
       bundle,
       depth: 0,
       ledger: new RunLedger(bundle.budgets),
       env,
+      ...(env.runId !== undefined ? { forcedRunId: env.runId } : {}),
+      ...(env.seedMessages !== undefined ? { seedMessages: env.seedMessages } : {}),
     });
   }
 
@@ -57,8 +65,10 @@ export class ArenaOrchestrator {
     ledger: RunLedger;
     env: SpawnEnv;
     parentRunId?: string;
+    forcedRunId?: string;
+    seedMessages?: import('../agent/types.js').ChatMessage[];
   }): Promise<RunResult> {
-    const runId = randomId('run');
+    const runId = ctx.forcedRunId ?? randomId('run');
     const cap = ctx.bundle.budgets.maxDepth ?? this.defaultMaxDepth;
 
     const registry = cloneRegistry(this.baseRegistry);
@@ -75,6 +85,7 @@ export class ArenaOrchestrator {
       runId,
       parentRunId: ctx.parentRunId,
       depth: ctx.depth,
+      ...(ctx.seedMessages !== undefined ? { seedMessages: ctx.seedMessages } : {}),
     });
   }
 

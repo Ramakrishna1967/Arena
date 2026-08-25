@@ -1,5 +1,8 @@
 import type { ChatMessage, NormalizedToolCall, ProviderName, TokenUsage } from '../providers/types.js';
 
+/** Re-export so downstream layers have one import site for message types. */
+export type { ChatMessage };
+
 /**
  * L2 contracts. A PolicyBundle is an IMMUTABLE snapshot bound to exactly one
  * run (architecture decision: no mid-session swaps; L4 publishes new versions
@@ -120,4 +123,6 @@ export interface RunOptions {
   /** Set by the orchestrator on spawned children for trajectory linkage. */
   parentRunId?: string;
   depth?: number;
+  /** Resume support: pre-seed the conversation instead of a bare user task. */
+  seedMessages?: ChatMessage[];
 }

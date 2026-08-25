@@ -98,7 +98,7 @@ Order follows data flow: nothing scores what doesn't run; nothing levels up with
 - **100/100 tests passing, tsc strict clean.** Contract docs: `src/leveling/README.md`
 - Debt logged: parallel skill attribution when multiple skills injected per run (v1 credits all); YAML frontmatter is generated-only (canonical data in skill.json)
 
-## Phase 6: CLI Surface, Persistence Hardening, Distribution (L5)
+## Phase 6: CLI Surface, Persistence Hardening, Distribution (L5) — ✅ COMPLETE
 **Goal:** Ship it as a tool people install.
 
 - Full command surface: run/resume, skills CRUD + inspect, arbiter report (`why`), level/status, rollback
@@ -108,3 +108,12 @@ Order follows data flow: nothing scores what doesn't run; nothing levels up with
 - Packaging: single-binary builds, config docs, onboarding (`arena init`)
 
 **Exit criteria:** Two concurrent sessions safe under lockfile; cold-start resume works; E2E demo: fresh install → task run → skill mined → promoted after threshold → visible behavior change next session.
+
+**Delivered (2026-08-25):**
+- `src/persistence/atomic.ts` — atomic write-temp-rename; `FileLock` (O_EXCL + pid stamping, stale steal @30s, bounded wait); `withArenaLock` serializing all state mutations (never provider calls)
+- `src/app.ts` — `ArenaApp`: run/resume/status/listRuns/ingestScore; skill selection rendered into the bound system prompt ("Active Skills"); scoring+leveling wired into every run
+- Resume path: `rebuildMessages()` reconstructs full conversation from JSONL in a fresh process (`seedMessages` on RunOptions)
+- `src/cli/main.ts` — zero-dep CLI: init/run/resume/status/runs/skills/why with exit codes; `bin: arena -> dist/cli/main.js`; direct-exec bootstrap (side-effect-free import); `tsconfig.build.json` NodeNext emit
+- `tests/e2e/` — exit criteria proven: concurrent ingests across two ArenaApp instances serialize under lockfile (no lost updates); second lock holder rejected with holder pid; fresh-install E2E loop — run → mine from trajectory → promote → second run injects skill into system prompt + ledger closes the loop; cold-start resume via brand-new App instance carries full prior conversation
+- **104/104 tests passing, tsc strict clean, `npm run build` + binary verified.** Docs: `src/cli/README.md`
+- Debt logged: ink-based renderer, `npm i -g` smoke test, config.json merging into ArenaApp flags

@@ -51,7 +51,10 @@ export class AgentExecutor {
     const cwd = opts.cwd ?? process.cwd();
     const toolCtx: ToolContext = { cwd, signal: internal.signal, fetchImpl: (...a) => globalThis.fetch(...a) };
 
-    const transcript: ChatMessage[] = [{ role: 'user', text: task }];
+    const transcript: ChatMessage[] =
+      opts.seedMessages !== undefined && opts.seedMessages.length > 0
+        ? [...opts.seedMessages]
+        : [{ role: 'user', text: task }];
     const usageByTurn: TokenUsage[] = [];
     let steps = 0;
     let toolCallsExecuted = 0;

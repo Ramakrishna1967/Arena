@@ -9,8 +9,12 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
     "test:watch": "vitest"
+  },
+  "bin": {
+    "arena": "./dist/cli/main.js"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
