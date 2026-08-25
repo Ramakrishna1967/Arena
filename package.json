@@ -1,0 +1,20 @@
+{
+  "name": "arena-cli",
+  "version": "0.1.0",
+  "description": "Multi-provider agent CLI where agents level up from usage. No weight fine-tuning - improvement via prompt/strategy evolution and mined skill files.",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.3.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.1.0"
+  }
+}
