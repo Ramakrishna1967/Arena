@@ -5,7 +5,10 @@ import { PermissionManager } from './permissions.js';
 import type { ToolRegistry } from './tools/registry.js';
 import type { ToolContext } from './tools/types.js';
 import type { AgentEvent, EventMeta, PolicyBundle, RawAgentEvent, RunOptions, RunResult, RunStatus } from './types.js';
-import { randomId } from './util.js';
+import { randomId, truncate } from './util.js';
+
+/** Output preview length embedded in tool_result events (JSONL replay fidelity vs size). */
+export const EVENT_OUTPUT_PREVIEW_CHARS = 800;
 
 /**
  * The plan ▸ act ▸ observe loop. Exactly one immutable PolicyBundle binds to
@@ -53,7 +56,7 @@ export class AgentExecutor {
     let steps = 0;
     let toolCallsExecuted = 0;
 
-    emit({ type: 'run_start' });
+    emit({ type: 'run_start', task });
 
     const finishRun = (status: RunStatus, finalText?: string, errorMessage?: string): RunResult => {
       if (wallTimer) clearTimeout(wallTimer);
@@ -192,9 +195,17 @@ export class AgentExecutor {
     const started = Date.now();
 
     const deny = (reason: string): { ok: boolean; output: string } => {
+      const msg = `PERMISSION DENIED (${call.name}): ${reason}. Adapt and continue without it.`;
       emit({ type: 'tool_call', call, permitted: false });
-      emit({ type: 'tool_result', callId: call.id, tool: call.name, ok: false, durationMs: Date.now() - started });
-      return { ok: false, output: `PERMISSION DENIED (${call.name}): ${reason}. Adapt and continue without it.` };
+      emit({
+        type: 'tool_result',
+        callId: call.id,
+        tool: call.name,
+        ok: false,
+        durationMs: Date.now() - started,
+        output: msg,
+      });
+      return { ok: false, output: msg };
     };
 
     const tool = this.registry.get(call.name);
@@ -208,12 +219,26 @@ export class AgentExecutor {
     emit({ type: 'tool_call', call, permitted: true });
     try {
       const result = await tool.execute(call.arguments, ctx);
-      emit({ type: 'tool_result', callId: call.id, tool: call.name, ok: result.ok, durationMs: Date.now() - started });
+      emit({
+        type: 'tool_result',
+        callId: call.id,
+        tool: call.name,
+        ok: result.ok,
+        durationMs: Date.now() - started,
+        output: truncate(result.output, EVENT_OUTPUT_PREVIEW_CHARS),
+      });
       return { ok: result.ok, output: result.output };
     } catch (err) {
       if (isAbortError(err) || ctx.signal.aborted) throw err;
       const output = `tool crashed: ${err instanceof Error ? err.message : String(err)}`;
-      emit({ type: 'tool_result', callId: call.id, tool: call.name, ok: false, durationMs: Date.now() - started });
+      emit({
+        type: 'tool_result',
+        callId: call.id,
+        tool: call.name,
+        ok: false,
+        durationMs: Date.now() - started,
+        output,
+      });
       return { ok: false, output };
     }
   }

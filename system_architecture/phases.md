@@ -60,7 +60,7 @@ Order follows data flow: nothing scores what doesn't run; nothing levels up with
 - **83/83 tests passing, tsc strict clean.** Contract docs: `src/orchestrator/README.md`
 - Debt logged: parallel sibling spawns serialize today → revisit in Phase 6 if needed
 
-## Phase 4: Trajectory Logging + Arbiter (L3)
+## Phase 4: Trajectory Logging + Arbiter (L3) — ✅ COMPLETE
 **Goal:** Every run leaves evidence; every verdict is explicit and inspectable.
 
 - Recorder: append-only `events.jsonl` per run (+ `score.json`)
@@ -70,6 +70,14 @@ Order follows data flow: nothing scores what doesn't run; nothing levels up with
 - `ScoreRecord` output contract
 
 **Exit criteria:** Replay any past run from JSONL alone; identical run re-scores deterministically for hard-check stage; rubric versions pinned in every score.
+
+**Delivered (2026-08-25):**
+- `src/recorder/` — append-only `events.jsonl` per run dir + `meta.json` + `scores/`; passthrough sink; `loadEvents` replay with line-numbered corruption errors; trajectory/tree reconstruction from flat stream
+- Events extended for self-contained replay: `run_start.task`, `tool_result.output` (capped preview)
+- `src/arbiter/` — versioned deterministic hard checks (`run_completed`, `tolerable_tool_failures`, ...); rubric engine (JSON files, weight-sum validation, unknown-check rejection, shipped default v1.0.0); judge meta-lane (`llmJudge` with separate provider/model config) + injectable `JudgeFn`; two-stage pipeline with explicit ordered verdict rules
+- Provider-fault exclusion: infrastructure failures → verdict `inconclusive` + `provider_fault:*` excluded from agent stats
+- `tests/arbiter/` — exit criteria proven: JSONL roundtrip replay; byte-identical re-score with fixed clock; rubric version pinned verbatim; hard-fail decisive with judge never called; provider fault → inconclusive; judge-lane outage degrades gracefully
+- **91/91 tests passing, tsc strict clean.** Contract docs: `src/arbiter/README.md`
 
 ## Phase 5: Leveling + Skill Evolution Engine (L4)
 **Goal:** Improvement that cannot be faked by a lucky run.

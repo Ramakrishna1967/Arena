@@ -76,11 +76,19 @@ export interface EventMeta {
 type Distribute<T> = T extends unknown ? Omit<T, keyof EventMeta> : never;
 
 type AgentEventBase =
-  | { type: 'run_start'; runId: string }
+  | { type: 'run_start'; task: string }
   | { type: 'step_start'; step: number }
   | { type: 'text'; delta: string }
   | { type: 'tool_call'; call: NormalizedToolCall; permitted: boolean }
-  | { type: 'tool_result'; callId: string; tool: string; ok: boolean; durationMs: number }
+  | {
+      type: 'tool_result';
+      callId: string;
+      tool: string;
+      ok: boolean;
+      durationMs: number;
+      /** Capped preview of the tool output so JSONL replay is self-contained. */
+      output: string;
+    }
   | { type: 'step_end'; step: number; usage?: TokenUsage }
   | { type: 'run_end'; status: RunStatus; finalText?: string; errorMessage?: string };
 

@@ -50,3 +50,16 @@ export {
 } from './orchestrator/ledger.js';
 export type { DerivedBudgets } from './orchestrator/ledger.js';
 export type { SpawnEnv, SpawnArgs } from './orchestrator/spawn-protocol.js';
+
+// Layer 3: Trajectory Logging + Arbiter.
+export { Recorder, loadEvents, type RunMeta } from './recorder/recorder.js';
+export { treeNodes, buildTrajectoryView } from './recorder/trajectory.js';
+export type { TrajectoryView, TrajectoryStep, TreeNode } from './recorder/trajectory.js';
+export { CHECKS, evaluateChecks } from './arbiter/checks.js';
+export { Arbiter, detectProviderFault, VERDICT_THRESHOLDS } from './arbiter/arbiter.js';
+export type { ScoreRunOptions, ArbiterOptions } from './arbiter/arbiter.js';
+export { DEFAULT_RUBRIC, DEFAULT_RUBRIC_NAME, ensureDefaultRubric, loadRubric } from './arbiter/rubric.js';
+export { llmJudge } from './arbiter/llm-judge.js';
+export type { JudgeLaneConfig } from './arbiter/llm-judge.js';
+export type { Rubric, RubricDimension, CheckResult, ScoreRecord, Verdict } from './arbiter/types.js';
+export type { JudgeFn, JudgeRequest, JudgeResult, DimensionScore } from './arbiter/judge-types.js';
