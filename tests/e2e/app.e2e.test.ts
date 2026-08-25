@@ -105,8 +105,9 @@ describe('phase 6 exit criteria - full loop on fresh install', () => {
       }),
     });
 
-    // --- RUN 1 (fresh install -> working agent)
-    const r1 = await app.runTask('create notes/todo.txt saying buy milk', { maxSteps: 3 });
+    // --- RUN 1 (fresh install -> working agent); cwd jailed to a temp workspace
+    const ws = tempRoot('arena-ws-');
+    const r1 = await app.runTask('create notes/todo.txt saying buy milk', { cwd: ws, maxSteps: 3 });
     expect(r1.result.status).toBe('completed');
     expect(r1.record.verdict).toBe('success');
     expect(r1.injected).toEqual([]);
@@ -135,7 +136,7 @@ describe('phase 6 exit criteria - full loop on fresh install', () => {
     void st;
 
     // --- RUN 2 mentions 'flaky' -> skill MUST be injected into system prompt
-    const r2 = await app.runTask('fix flaky checkout test', { maxSteps: 3 });
+    const r2 = await app.runTask('fix flaky checkout test', { cwd: ws, maxSteps: 3 });
     const req2 = provider.requests.at(-1)!;
     expect((req2.system ?? '')).toContain('REPRODUCE first');
     expect(r2.injected.map((i) => i.id)).toContain(mined.id);
